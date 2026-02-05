@@ -1,6 +1,5 @@
-# DGX Spark 專用 Docker Compose (ARM64/aarch64)
-# 針對 NVIDIA Grace Hopper 架構優化
-# 不使用 runtime: nvidia，改用 deploy.resources
+# DGX Spark 專用 Docker Compose (ARM64 + Blackwell GB10)
+# 針對 NVIDIA Grace Blackwell 架構優化
 
 services:
   # === Redis ===
@@ -27,6 +26,7 @@ services:
     container_name: whisper-api-dgx
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - HF_TOKEN=${HF_TOKEN}
       - MODEL_SIZE=${MODEL_SIZE:-large-v3}
       - COMPUTE_TYPE=${COMPUTE_TYPE:-float16}
@@ -51,13 +51,14 @@ services:
       retries: 3
       start_period: 120s
     restart: unless-stopped
+    # DGX Spark GPU 配置
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+              capabilities: [gpu, compute, utility]
+              count: all
 
   # === Celery Worker ===
   whisper-worker:
@@ -67,8 +68,8 @@ services:
     container_name: whisper-worker-dgx
     command: celery -A workers.celery_app worker --loglevel=info -Q transcription,default -c 2
     environment:
-      - NVIDIA_VISIBLE_DEVICES=0
-      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CELERY_WORKER_ID=0
       - HF_TOKEN=${HF_TOKEN}
       - MODEL_SIZE=${MODEL_SIZE:-large-v3}
@@ -89,8 +90,8 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+              capabilities: [gpu, compute, utility]
+              count: all
 
 volumes:
   redis_data:
