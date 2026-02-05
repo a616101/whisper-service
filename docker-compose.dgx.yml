@@ -1,5 +1,10 @@
 # DGX Spark 專用 Docker Compose (ARM64 + Blackwell GB10)
 # 針對 NVIDIA Grace Blackwell 架構優化
+# 參考：https://github.com/Mekopa/whisperx-blackwell
+#
+# 首次建置需要較長時間（~30分鐘），因為需要從源碼編譯：
+# - torchaudio v2.6.0
+# - CTranslate2 v4.4.0
 
 services:
   # === Redis ===
@@ -27,6 +32,9 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Blackwell GPU 相容性
+      - TORCH_CUDA_ARCH_LIST=9.0
+      - CUDA_FORCE_PTX_JIT=1
       - HF_TOKEN=${HF_TOKEN}
       - MODEL_SIZE=${MODEL_SIZE:-large-v3}
       - COMPUTE_TYPE=${COMPUTE_TYPE:-float16}
@@ -70,6 +78,9 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Blackwell GPU 相容性
+      - TORCH_CUDA_ARCH_LIST=9.0
+      - CUDA_FORCE_PTX_JIT=1
       - CELERY_WORKER_ID=0
       - HF_TOKEN=${HF_TOKEN}
       - MODEL_SIZE=${MODEL_SIZE:-large-v3}
