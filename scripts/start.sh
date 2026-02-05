@@ -94,7 +94,17 @@ case $MODE in
         ;;
     prod)
         echo -e "${GREEN}啟動生產模式（單 GPU + Redis）${NC}"
-        docker compose up -d --build
+        # 檢查是否有 nvidia runtime
+        if docker info 2>/dev/null | grep -q "Runtimes.*nvidia"; then
+            docker compose up -d --build
+        else
+            echo -e "${YELLOW}未偵測到 nvidia runtime，使用 DGX 兼容模式${NC}"
+            docker compose -f docker-compose.dgx.yml up -d --build
+        fi
+        ;;
+    dgx)
+        echo -e "${GREEN}啟動 DGX Spark 模式${NC}"
+        docker compose -f docker-compose.dgx.yml up -d --build
         ;;
     multi-gpu)
         echo -e "${GREEN}啟動多 GPU 模式${NC}"
@@ -123,6 +133,7 @@ case $MODE in
         docker compose down 2>/dev/null || true
         docker compose -f docker-compose.dev.yml down 2>/dev/null || true
         docker compose -f docker-compose.mac.yml down 2>/dev/null || true
+        docker compose -f docker-compose.dgx.yml down 2>/dev/null || true
         echo -e "${GREEN}已停止所有服務${NC}"
         exit 0
         ;;
@@ -135,13 +146,14 @@ case $MODE in
         exit 0
         ;;
     *)
-        echo "用法: $0 {auto|mac|dev|prod|multi-gpu|monitoring|full|local|stop|logs}"
+        echo "用法: $0 {auto|mac|dev|prod|dgx|multi-gpu|monitoring|full|local|stop|logs}"
         echo ""
         echo "模式說明："
         echo "  auto        - 自動偵測環境選擇最佳模式"
         echo "  mac         - Mac 模式（Docker CPU）"
         echo "  dev         - GPU 開發模式（單機，需要 NVIDIA）"
         echo "  prod        - 生產模式（單 GPU + Redis）"
+        echo "  dgx         - DGX Spark 模式（不依賴 nvidia runtime）"
         echo "  multi-gpu   - 多 GPU 模式"
         echo "  monitoring  - 含 Flower 監控"
         echo "  full        - 完整模式（多 GPU + 監控）"
