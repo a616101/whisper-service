@@ -1,11 +1,12 @@
-# DGX Spark 專用 Docker Compose
-# 使用新版 GPU 配置語法（不依賴 runtime: nvidia）
+# DGX Spark 專用 Docker Compose (ARM64/aarch64)
+# 針對 NVIDIA Grace Hopper 架構優化
+# 不使用 runtime: nvidia，改用 deploy.resources
 
 services:
-  # === Redis（任務佇列和結果存儲）===
+  # === Redis ===
   redis:
     image: redis:7-alpine
-    container_name: whisper-redis
+    container_name: whisper-redis-dgx
     command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
@@ -22,8 +23,8 @@ services:
   whisper-api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: whisper-api
+      dockerfile: Dockerfile.dgx
+    container_name: whisper-api-dgx
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - HF_TOKEN=${HF_TOKEN}
@@ -33,7 +34,6 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      # PyTorch 2.6 相容性
       - TORCH_FORCE_WEIGHTS_ONLY_LOAD=0
     volumes:
       - ./cache/huggingface:/root/.cache/huggingface
@@ -59,12 +59,12 @@ services:
               count: 1
               capabilities: [gpu]
 
-  # === Celery Worker（GPU 0）===
-  whisper-worker-0:
+  # === Celery Worker ===
+  whisper-worker:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: whisper-worker-0
+      dockerfile: Dockerfile.dgx
+    container_name: whisper-worker-dgx
     command: celery -A workers.celery_app worker --loglevel=info -Q transcription,default -c 2
     environment:
       - NVIDIA_VISIBLE_DEVICES=0
@@ -89,29 +89,12 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['0']
+              count: 1
               capabilities: [gpu]
-
-  # === Flower（Celery 監控面板，可選）===
-  flower:
-    image: mher/flower:2.0
-    container_name: whisper-flower
-    command: celery --broker=redis://redis:6379/0 flower --port=5555
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-    ports:
-      - "5555:5555"
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles:
-      - monitoring
 
 volumes:
   redis_data:
 
 networks:
   default:
-    name: whisper-network
+    name: whisper-network-dgx

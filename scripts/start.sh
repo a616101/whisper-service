@@ -103,8 +103,25 @@ case $MODE in
         fi
         ;;
     dgx)
-        echo -e "${GREEN}啟動 DGX Spark 模式${NC}"
-        docker compose -f docker-compose.dgx.yml up -d --build
+        echo -e "${GREEN}啟動 DGX Spark 模式 (ARM64)${NC}"
+        echo -e "${BLUE}架構: ${ARCH}${NC}"
+        # 清理可能的舊映像（避免架構衝突）
+        docker compose -f docker-compose.dgx.yml down 2>/dev/null || true
+        docker compose -f docker-compose.dgx.yml build --no-cache
+        docker compose -f docker-compose.dgx.yml up -d
+        ;;
+    clean)
+        echo -e "${YELLOW}清理所有 Docker 資源（映像、容器、快取）${NC}"
+        docker compose down 2>/dev/null || true
+        docker compose -f docker-compose.dev.yml down 2>/dev/null || true
+        docker compose -f docker-compose.mac.yml down 2>/dev/null || true
+        docker compose -f docker-compose.dgx.yml down 2>/dev/null || true
+        echo "移除相關映像..."
+        docker images | grep whisper | awk '{print $3}' | xargs -r docker rmi -f 2>/dev/null || true
+        echo "清理建置快取..."
+        docker builder prune -f 2>/dev/null || true
+        echo -e "${GREEN}清理完成！${NC}"
+        exit 0
         ;;
     multi-gpu)
         echo -e "${GREEN}啟動多 GPU 模式${NC}"
@@ -146,19 +163,20 @@ case $MODE in
         exit 0
         ;;
     *)
-        echo "用法: $0 {auto|mac|dev|prod|dgx|multi-gpu|monitoring|full|local|stop|logs}"
+        echo "用法: $0 {auto|mac|dev|prod|dgx|multi-gpu|monitoring|full|local|stop|clean|logs}"
         echo ""
         echo "模式說明："
         echo "  auto        - 自動偵測環境選擇最佳模式"
         echo "  mac         - Mac 模式（Docker CPU）"
         echo "  dev         - GPU 開發模式（單機，需要 NVIDIA）"
         echo "  prod        - 生產模式（單 GPU + Redis）"
-        echo "  dgx         - DGX Spark 模式（不依賴 nvidia runtime）"
+        echo "  dgx         - DGX Spark 模式（ARM64，不依賴 nvidia runtime）"
         echo "  multi-gpu   - 多 GPU 模式"
         echo "  monitoring  - 含 Flower 監控"
         echo "  full        - 完整模式（多 GPU + 監控）"
         echo "  local       - 顯示本地執行指南（MPS 加速）"
         echo "  stop        - 停止所有服務"
+        echo "  clean       - 清理所有 Docker 資源（解決架構衝突）"
         echo "  logs        - 查看日誌"
         exit 1
         ;;

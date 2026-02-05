@@ -1,10 +1,13 @@
+# === DGX Spark (ARM64) 專用依賴 ===
+# 注意：PyTorch 已在 NGC 容器中預裝，無需再安裝
+
 # === Web Framework ===
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
 python-multipart>=0.0.9
 
 # === WhisperX + Diarization ===
-# 注意：whisperx 會自動安裝正確版本的 pyannote.audio
+# whisperx 會自動安裝 pyannote.audio
 whisperx>=3.1.5
 
 # === Task Queue ===
@@ -24,9 +27,3 @@ python-json-logger>=2.0.0
 
 # === 簡繁轉換 ===
 opencc-python-reimplemented>=0.1.7
-
-# === Development (可選) ===
-# pytest==8.3.2
-# pytest-asyncio==0.24.0
-# black==24.8.0
-# isort==5.13.2

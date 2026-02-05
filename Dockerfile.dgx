@@ -1,0 +1,57 @@
+# WhisperX Subtitle Service - DGX Spark 專用 (ARM64/aarch64)
+# 針對 NVIDIA Grace CPU + GPU 架構優化
+# 不指定 --platform，讓 Docker 自動選擇本地架構
+
+# 使用 NVIDIA PyTorch NGC 容器（支援 ARM64）
+# 版本 24.01+ 支援 Grace Hopper
+FROM nvcr.io/nvidia/pytorch:24.01-py3
+
+LABEL maintainer="whisper-service"
+LABEL description="WhisperX Subtitle Service for DGX Spark (ARM64)"
+
+# 避免交互式提示
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 設置工作目錄
+WORKDIR /app
+
+# 安裝系統依賴
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
+    curl \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 複製依賴檔案
+COPY requirements.dgx.txt ./requirements.txt
+
+# 安裝 Python 依賴 (NGC 容器已有 PyTorch，跳過 torch 安裝)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 複製應用程式碼
+COPY config/ ./config/
+COPY utils/ ./utils/
+COPY app/ ./app/
+COPY workers/ ./workers/
+
+# 創建快取目錄
+RUN mkdir -p /app/cache/models /app/cache/huggingface
+
+# 設置環境變數
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV HOST=0.0.0.0
+ENV PORT=8000
+# PyTorch 相容性
+ENV TORCH_FORCE_WEIGHTS_ONLY_LOAD=0
+
+# 預設暴露端口
+EXPOSE 8000
+
+# 健康檢查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/api/v1/health || exit 1
+
+# 預設啟動命令（API 服務）
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

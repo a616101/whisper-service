@@ -1,7 +1,8 @@
 # WhisperX Subtitle Service
 # 生產級 Dockerfile（GPU 支援）
 
-FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+# 明確指定平台為 linux/amd64
+FROM --platform=linux/amd64 pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
 
 LABEL maintainer="whisper-service"
 LABEL description="WhisperX Subtitle Service with GPU support"
