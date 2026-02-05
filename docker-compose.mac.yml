@@ -1,0 +1,37 @@
+# Mac (Apple Silicon) 專用 Docker Compose
+# 使用 CPU 模式，不需要 nvidia-docker
+
+services:
+  whisper-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.mac
+    container_name: whisper-api-mac
+    platform: linux/arm64  # Apple Silicon
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - MODEL_SIZE=${MODEL_SIZE:-base}  # Mac 建議用較小模型
+      - COMPUTE_TYPE=int8               # CPU 模式建議 int8
+      - BATCH_SIZE=${BATCH_SIZE:-4}     # CPU 模式批次較小
+      - DEVICE=cpu
+      - DEBUG=true
+      # PyTorch 2.6+ 相容性
+      - TORCH_FORCE_WEIGHTS_ONLY_LOAD=0
+      - WHISPERX_ALLOW_UNSAFE_LOAD=1
+    volumes:
+      # 模型快取（持久化）
+      - ./cache/huggingface:/root/.cache/huggingface
+      - ./cache/torch:/root/.cache/torch
+      # 開發時掛載源碼
+      - ./app:/app/app
+      - ./config:/app/config
+      - ./utils:/app/utils
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s  # CPU 模式載入較慢
+    restart: unless-stopped

@@ -1,0 +1,29 @@
+# Mac 專用依賴檔案（CPU/MPS 模式）
+# PyTorch 需要另外安裝（見 Dockerfile.mac 或本地安裝指南）
+
+# === Web Framework ===
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+
+# === WhisperX + Diarization ===
+# whisperx 會自動安裝 pyannote.audio
+whisperx>=3.1.5
+
+# === Task Queue (可選，開發時可不用) ===
+# celery[redis]>=5.3.0
+# redis>=5.0.0
+
+# === HTTP Client ===
+httpx>=0.27.0
+
+# === Configuration ===
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# === Utilities ===
+numpy>=1.24.0
+python-json-logger>=2.0.0
+
+# === 簡繁轉換 ===
+opencc-python-reimplemented>=0.1.7

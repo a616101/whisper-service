@@ -1,0 +1,41 @@
+# 開發/單機版 Docker Compose
+# 適用於測試和單 GPU 環境
+
+services:
+  whisper-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: whisper-api-dev
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - HF_TOKEN=${HF_TOKEN}
+      - MODEL_SIZE=${MODEL_SIZE:-large-v3}
+      - COMPUTE_TYPE=${COMPUTE_TYPE:-float16}
+      - BATCH_SIZE=${BATCH_SIZE:-16}
+      - DEBUG=true
+    volumes:
+      # 模型快取（持久化）
+      - ./cache/huggingface:/root/.cache/huggingface
+      - ./cache/torch:/root/.cache/torch
+      # 開發時掛載源碼（可選）
+      - ./app:/app/app
+      - ./config:/app/config
+      - ./utils:/app/utils
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
