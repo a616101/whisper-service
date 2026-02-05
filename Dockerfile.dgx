@@ -2,16 +2,13 @@
 # 針對 NVIDIA Grace Blackwell 架構優化
 
 # 使用最新的 NGC PyTorch 容器（支援 Blackwell）
-# 24.09+ 版本支援 Blackwell 架構
 FROM nvcr.io/nvidia/pytorch:24.09-py3
 
 LABEL maintainer="whisper-service"
 LABEL description="WhisperX Subtitle Service for DGX Spark (ARM64 + Blackwell)"
 
-# 避免交互式提示
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 設置工作目錄
 WORKDIR /app
 
 # 安裝系統依賴
@@ -24,13 +21,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sox \
     && rm -rf /var/lib/apt/lists/*
 
+# === 關鍵：降級 transformers 版本 ===
+# NGC 容器的 transformers 版本太新，與 whisperx 不兼容
+RUN pip uninstall -y transformers && \
+    pip install --no-cache-dir "transformers>=4.36.0,<4.40.0"
+
 # 複製依賴檔案
 COPY requirements.dgx.txt ./requirements.txt
 
-# 分步安裝依賴
+# 安裝依賴
 RUN pip install --no-cache-dir huggingface_hub>=0.20.0
 RUN pip install --no-cache-dir speechbrain>=1.0.0
 RUN pip install --no-cache-dir -r requirements.txt
+
+# 驗證 GPU 可用性（建置時檢查）
+RUN python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA available: {torch.cuda.is_available()}')"
 
 # 複製應用程式碼
 COPY config/ ./config/
@@ -47,7 +52,7 @@ ENV PYTHONUNBUFFERED=1
 ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV TORCH_FORCE_WEIGHTS_ONLY_LOAD=0
-# 確保 CUDA 可見
+# GPU 環境變數
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 

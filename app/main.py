@@ -52,7 +52,25 @@ async def lifespan(app: FastAPI):
     """應用生命週期管理"""
     # 啟動時預載入模型（可選）
     logger.info("Starting WhisperX Subtitle Service")
-    logger.info(f"Model: {settings.model_size}, Device: {settings.device}")
+
+    # === GPU 診斷資訊 ===
+    import torch
+    logger.info(f"PyTorch version: {torch.__version__}")
+    logger.info(f"CUDA available: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        logger.info(f"CUDA version: {torch.version.cuda}")
+        logger.info(f"GPU count: {torch.cuda.device_count()}")
+        for i in range(torch.cuda.device_count()):
+            logger.info(f"  GPU {i}: {torch.cuda.get_device_name(i)}")
+    else:
+        logger.warning("No GPU detected! Running on CPU (slow)")
+        # 顯示可能的原因
+        import os
+        logger.info(f"  NVIDIA_VISIBLE_DEVICES: {os.environ.get('NVIDIA_VISIBLE_DEVICES', 'not set')}")
+        logger.info(f"  CUDA_VISIBLE_DEVICES: {os.environ.get('CUDA_VISIBLE_DEVICES', 'not set')}")
+
+    actual_device = settings.get_device()
+    logger.info(f"Model: {settings.model_size}, Device: {actual_device}")
 
     if settings.debug:
         logger.info("Debug mode enabled")

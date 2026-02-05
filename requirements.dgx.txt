@@ -1,4 +1,4 @@
-# === DGX Spark (ARM64) 專用依賴 ===
+# === DGX Spark (ARM64 + Blackwell) 專用依賴 ===
 # 注意：PyTorch 已在 NGC 容器中預裝，無需再安裝
 
 # === Web Framework ===
@@ -6,11 +6,12 @@ fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
 python-multipart>=0.0.9
 
-# === HuggingFace（pyannote 需要）===
-huggingface_hub>=0.20.0
+# === HuggingFace（固定版本避免衝突）===
+huggingface_hub>=0.20.0,<0.25.0
+# transformers 必須固定版本，NGC 容器預裝的版本太新
+transformers>=4.36.0,<4.40.0
 
 # === SpeechBrain（pyannote Pipeline 需要）===
-# 必須在 whisperx 之前安裝
 speechbrain>=1.0.0
 
 # === WhisperX + Diarization ===
